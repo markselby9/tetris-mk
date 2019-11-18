@@ -46,7 +46,7 @@ impl Board {
                 println!("right");
             }
             Direction::Down => {
-                println!("down");
+                while self.drop() {}
             }
         }
     }
@@ -122,5 +122,11 @@ mod tests {
         board.move_shape(Direction::Left);
         board.move_shape(Direction::Right);
         board.move_shape(Direction::Down);
+
+        println!("{}", board);
+        assert_eq!(*board.get_cell(8, 2), Cell::Empty);
+        assert_eq!(*board.get_cell(8, 3), Cell::Placed);
+        assert_eq!(*board.get_cell(8, 4), Cell::Placed);
+        assert_eq!(*board.get_cell(8, 5), Cell::Empty);
     }
 }
