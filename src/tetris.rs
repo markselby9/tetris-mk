@@ -51,6 +51,7 @@ pub struct Board {
     width: usize,
     height: usize,
     cells: Vec<Vec<Cell>>,
+    running_cells: Vec<(usize, usize)>,
 }
 
 impl Board {
@@ -59,10 +60,12 @@ impl Board {
             return Err(TetrisError::InvalidParam);
         }
         let cells = vec![vec![Cell::Empty; width]; height];
+        let running_cells = vec![];
         Ok(Board {
             width,
             height,
             cells,
+            running_cells,
         })
     }
 
@@ -90,18 +93,41 @@ impl Board {
         self.cells[x][y] = val;
     }
 
+    pub fn get_running_cells(&self) -> &Vec<(usize, usize)> {
+        &self.running_cells
+    }
+
+    pub fn set_running_cells(&mut self, new_running_cells: Vec<(usize, usize)>) {
+        self.running_cells = new_running_cells;
+    }
+
     pub fn add_shape(&mut self, shape: Shape) {
         // add a shape into the board, which should appear in the middle of the top row
         let mut next = self.cells.clone();
         for (delta_x, delta_y) in shape.data {
-            next[(0 + delta_x) as usize][((self.width as i32 - 1) / 2 + delta_y) as usize] =
-                Cell::Running;
+            let x = delta_x as usize;
+            let y = ((self.width as i32 - 1) / 2 + delta_y) as usize;
+            self.running_cells.push((x, y));
+            next[x][y] = Cell::Running;
         }
         self.cells = next;
     }
 
-    pub fn is_ith_column_empty(&self, i: usize) -> bool {
-        self.cells[i].iter().all(|&x| x == Cell::Empty)
+    // to check whether one row or column cells are all in one state
+    pub fn is_ith_column_all(&self, i: usize, state: Cell) -> bool {
+        self.cells[i].iter().all(|&x| x == state)
+    }
+
+    pub fn is_ith_column_none(&self, i: usize, state: Cell) -> bool {
+        self.cells[i].iter().all(|&x| x != state)
+    }
+
+    pub fn is_ith_row_all(&self, i: usize, state: Cell) -> bool {
+        self.cells.iter().all(|column| column[i] == state)
+    }
+
+    pub fn is_ith_row_none(&self, i: usize, state: Cell) -> bool {
+        self.cells.iter().all(|column| column[i] != state)
     }
 }
 
@@ -116,7 +142,7 @@ impl fmt::Display for Board {
                 };
                 write!(f, "{}", symbol);
             }
-            writeln!(f, "");
+            writeln!(f);
         }
         Ok(()) // success result
     }
