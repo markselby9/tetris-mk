@@ -1,5 +1,5 @@
 use std::fmt;
-//use wasm_bindgen::prelude::*;
+use wasm_bindgen::prelude::*;
 
 // Error
 #[derive(Debug, PartialEq)]
@@ -9,6 +9,8 @@ pub enum TetrisError {
 }
 
 // Tetris board
+#[wasm_bindgen]
+#[repr(u8)] // 1 byte
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum Cell {
     Empty = 0,
@@ -19,6 +21,7 @@ pub enum Cell {
 
 type ShapeData = Vec<(i32, i32)>;
 
+#[wasm_bindgen]
 pub struct Shape {
     data: ShapeData,
     height: usize,
@@ -47,6 +50,7 @@ pub fn get_shape(shape_type: ShapeType) -> Shape {
     }
 }
 
+#[wasm_bindgen]
 pub struct Board {
     width: usize,
     height: usize,
@@ -54,19 +58,20 @@ pub struct Board {
     running_cells: Vec<(usize, usize)>,
 }
 
+#[wasm_bindgen]
 impl Board {
-    pub fn new(width: usize, height: usize) -> Result<Board, TetrisError> {
+    pub fn new(width: usize, height: usize) -> Board {
         if width < 5 || width > 20 || height < 10 || height > 100 {
-            return Err(TetrisError::InvalidParam);
+            panic!(TetrisError::InvalidParam);
         }
         let cells = vec![vec![Cell::Empty; width]; height];
         let running_cells = vec![];
-        Ok(Board {
+        Board {
             width,
             height,
             cells,
             running_cells,
-        })
+        }
     }
 
     pub fn get_width(&self) -> usize {
@@ -77,6 +82,12 @@ impl Board {
         self.height
     }
 
+    pub fn render(&self) -> String {
+        self.to_string()
+    }
+}
+
+impl Board {
     pub fn get_cells(&self) -> &Vec<Vec<Cell>> {
         &self.cells
     }

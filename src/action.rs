@@ -1,9 +1,73 @@
 use crate::tetris::*;
+use wasm_bindgen::prelude::*;
 
+#[wasm_bindgen]
+#[repr(u8)] // 1 byte
 pub enum Direction {
     Left = 0,
     Right = 1,
     Down = 2,
+}
+
+#[wasm_bindgen]
+impl Board {
+    // return false if game over, true if continues
+    pub fn tick(&mut self) -> bool {
+        //  what happens in the next frame
+        let try_drop = self.drop();
+        if !try_drop {
+            //todo: check whether game is already over
+            if !self.is_ith_column_all(0, Cell::Empty) {
+                return false;
+            } else {
+                self.check_delete_rows();
+                self.add_shape(get_shape(ShapeType::Square));
+            }
+        }
+        true
+    }
+
+    pub fn move_shape(&mut self, direction: Direction) {
+        let mut next = self.get_cells().clone();
+        let mut new_running_cells = vec![];
+        match direction {
+            Direction::Left => {
+                if self.is_ith_row_none(0, Cell::Running) {
+                    // can move left
+                    for (i, j) in self.get_running_cells().iter().cloned() {
+                        next[i][j] = Cell::Empty;
+                        new_running_cells.push((i, j - 1))
+                    }
+                    for (i, j) in new_running_cells.iter().cloned() {
+                        next[i][j] = Cell::Running;
+                    }
+
+                    self.set_cells(next);
+                    self.set_running_cells(new_running_cells);
+                }
+            }
+            Direction::Right => {
+                if self.is_ith_row_none(self.get_width() - 1, Cell::Running) {
+                    // can move left
+                    for (i, j) in self.get_running_cells().iter().cloned() {
+                        next[i][j] = Cell::Empty;
+                        new_running_cells.push((i, j + 1))
+                    }
+                    for (i, j) in new_running_cells.iter().cloned() {
+                        next[i][j] = Cell::Running;
+                    }
+
+                    self.set_cells(next);
+                    self.set_running_cells(new_running_cells);
+                }
+            }
+            Direction::Down => {
+                while self.drop() {
+                    println!("{}", self)
+                }
+            }
+        }
+    }
 }
 
 impl Board {
@@ -64,64 +128,6 @@ impl Board {
             self.set_cells(next);
         }
         deleted_rows
-    }
-
-    fn move_shape(&mut self, direction: Direction) {
-        let mut next = self.get_cells().clone();
-        let mut new_running_cells = vec![];
-        match direction {
-            Direction::Left => {
-                if self.is_ith_row_none(0, Cell::Running) {
-                    // can move left
-                    for (i, j) in self.get_running_cells().iter().cloned() {
-                        next[i][j] = Cell::Empty;
-                        new_running_cells.push((i, j - 1))
-                    }
-                    for (i, j) in new_running_cells.iter().cloned() {
-                        next[i][j] = Cell::Running;
-                    }
-
-                    self.set_cells(next);
-                    self.set_running_cells(new_running_cells);
-                }
-            }
-            Direction::Right => {
-                if self.is_ith_row_none(self.get_width() - 1, Cell::Running) {
-                    // can move left
-                    for (i, j) in self.get_running_cells().iter().cloned() {
-                        next[i][j] = Cell::Empty;
-                        new_running_cells.push((i, j + 1))
-                    }
-                    for (i, j) in new_running_cells.iter().cloned() {
-                        next[i][j] = Cell::Running;
-                    }
-
-                    self.set_cells(next);
-                    self.set_running_cells(new_running_cells);
-                }
-            }
-            Direction::Down => {
-                while self.drop() {
-                    println!("{}", self)
-                }
-            }
-        }
-    }
-
-    // return false if game over, true if continues
-    pub(crate) fn tick(&mut self) -> bool {
-        //  what happens in the next frame
-        let try_drop = self.drop();
-        if !try_drop {
-            //todo: check whether game is already over
-            if !self.is_ith_column_all(0, Cell::Empty) {
-                return false;
-            } else {
-                self.check_delete_rows();
-                self.add_shape(get_shape(ShapeType::Square));
-            }
-        }
-        true
     }
 }
 

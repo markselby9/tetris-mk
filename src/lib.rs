@@ -23,7 +23,7 @@ pub fn main_js() -> Result<(), JsValue> {
     // Your code goes here!
     console::log_1(&JsValue::from_str(&format!(
         "Hello world! From {:#?}",
-        vec!["Mark"]
+        vec!["Markkk"]
     )));
 
     Ok(())
