@@ -22,7 +22,8 @@ impl Board {
             if !self.is_ith_column_all(0, Cell::Empty) {
                 return false;
             } else {
-                self.check_delete_rows();
+                let deleted_row_count = self.check_delete_rows() as i32;
+                self.set_score(self.get_score() + deleted_row_count);
                 self.add_shape(get_shape(ShapeType::Square));
             }
         }

@@ -2,6 +2,7 @@ import("../pkg/index.js").then(t => {
     bootstrap(t)
 }).catch(console.error);
 const pre = document.getElementById('tetris-mk-canvas');
+const score = document.getElementById('score');
 
 const DIRECTIONS = {
     'LEFT': 0,
@@ -15,7 +16,10 @@ const bootstrap = (modules) => {
 
     const renderLoop = () => {
         pre.textContent = board.render();
+        score.textContent = board.get_score();
+
         if (!board.tick()) {
+            alert("Game over! Your score: " + board.get_score());
             board = Board.new(10, 20);
         }
 

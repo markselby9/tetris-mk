@@ -56,6 +56,7 @@ pub struct Board {
     height: usize,
     cells: Vec<Vec<Cell>>,
     running_cells: Vec<(usize, usize)>,
+    score: i32,
 }
 
 #[wasm_bindgen]
@@ -66,11 +67,13 @@ impl Board {
         }
         let cells = vec![vec![Cell::Empty; width]; height];
         let running_cells = vec![];
+        let score = 0;
         Board {
             width,
             height,
             cells,
             running_cells,
+            score,
         }
     }
 
@@ -80,6 +83,10 @@ impl Board {
 
     pub fn get_height(&self) -> usize {
         self.height
+    }
+
+    pub fn get_score(&self) -> i32 {
+        self.score
     }
 
     pub fn render(&self) -> String {
@@ -102,6 +109,10 @@ impl Board {
 
     pub fn set_cell(&mut self, x: usize, y: usize, val: Cell) {
         self.cells[x][y] = val;
+    }
+
+    pub fn set_score(&mut self, score: i32) {
+        self.score = score;
     }
 
     pub fn get_running_cells(&self) -> &Vec<(usize, usize)> {
