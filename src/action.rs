@@ -1,6 +1,8 @@
 use crate::tetris::*;
 use wasm_bindgen::prelude::*;
 
+//extern crate web_sys;
+
 #[wasm_bindgen]
 #[repr(u8)] // 1 byte
 pub enum Direction {
@@ -30,13 +32,22 @@ impl Board {
     pub fn move_shape(&mut self, direction: Direction) {
         let mut next = self.get_cells().clone();
         let mut new_running_cells = vec![];
+
         match direction {
             Direction::Left => {
                 if self.is_ith_row_none(0, Cell::Running) {
                     // can move left
+                    let mut can_move_left = true;
                     for (i, j) in self.get_running_cells().iter().cloned() {
+                        if next[i][j - 1] == Cell::Placed {
+                            can_move_left = false;
+                            break;
+                        }
                         next[i][j] = Cell::Empty;
                         new_running_cells.push((i, j - 1))
+                    }
+                    if !can_move_left {
+                        return;
                     }
                     for (i, j) in new_running_cells.iter().cloned() {
                         next[i][j] = Cell::Running;
@@ -48,10 +59,18 @@ impl Board {
             }
             Direction::Right => {
                 if self.is_ith_row_none(self.get_width() - 1, Cell::Running) {
-                    // can move left
+                    let mut can_move_right = true;
+                    // can move right
                     for (i, j) in self.get_running_cells().iter().cloned() {
+                        if next[i][j + 1] == Cell::Placed {
+                            can_move_right = false;
+                            break;
+                        }
                         next[i][j] = Cell::Empty;
                         new_running_cells.push((i, j + 1))
+                    }
+                    if !can_move_right {
+                        return;
                     }
                     for (i, j) in new_running_cells.iter().cloned() {
                         next[i][j] = Cell::Running;
@@ -117,11 +136,12 @@ impl Board {
         let mut deleted_rows: usize = 0;
         let mut current = self.get_cells().clone();
 
-        while !current.is_empty() && current.last().unwrap().iter().all(|&x| x == Cell::Placed) {
-            // remove this column
-            current.pop();
-            deleted_rows += 1;
-        }
+        current = current
+            .into_iter()
+            .filter(|row| row.iter().any(|&x| x != Cell::Placed))
+            .collect();
+        deleted_rows = self.get_cells().len() - current.len();
+
         if deleted_rows > 0 {
             let mut next = vec![vec![Cell::Empty; self.get_width()]; deleted_rows];
             next.append(&mut current);
