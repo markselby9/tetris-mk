@@ -24,7 +24,8 @@ impl Board {
             } else {
                 let deleted_row_count = self.check_delete_rows() as i32;
                 self.set_score(self.get_score() + deleted_row_count);
-                self.add_shape(get_shape(ShapeType::Square));
+                //                add a random shape
+                self.add_shape(get_shape(self.get_next_shape()));
             }
         }
         true
@@ -158,7 +159,7 @@ mod tests {
 
     #[test]
     fn test_drop() {
-        let mut board = Board::new(8, 10).unwrap();
+        let mut board = Board::new(8, 10);
         board.add_shape(get_shape(ShapeType::S));
         board.drop();
         board.drop();
@@ -172,7 +173,7 @@ mod tests {
 
     #[test]
     fn test_cannot_drop() {
-        let mut board = Board::new(8, 10).unwrap();
+        let mut board = Board::new(8, 10);
         for i in 0..8 {
             board.set_cell(3, i, Cell::Placed);
         }
@@ -183,8 +184,9 @@ mod tests {
 
     #[test]
     fn test_tick_will_end() {
-        let mut board = Board::new(8, 10).unwrap();
+        let mut board = Board::new(8, 10);
         board.add_shape(get_shape(ShapeType::Square));
+        board.set_next_shape(ShapeType::Square);
         let mut count = 0;
 
         loop {
@@ -201,7 +203,7 @@ mod tests {
 
     #[test]
     fn test_move_shape() {
-        let mut board = Board::new(8, 10).unwrap();
+        let mut board = Board::new(8, 10);
         board.add_shape(get_shape(ShapeType::Square));
 
         board.move_shape(Direction::Left);
@@ -225,8 +227,9 @@ mod tests {
     #[test]
     fn test_check_delete_rows() {
         //        test in a integrated way
-        let mut board = Board::new(8, 10).unwrap();
+        let mut board = Board::new(8, 10);
         board.add_shape(get_shape(ShapeType::Square));
+        board.set_next_shape(ShapeType::Square);
         board.move_shape(Direction::Left);
         board.move_shape(Direction::Left);
         board.move_shape(Direction::Left);

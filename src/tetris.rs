@@ -1,3 +1,7 @@
+use rand::{
+    distributions::{Distribution, Standard},
+    Rng,
+};
 use std::fmt;
 use wasm_bindgen::prelude::*;
 
@@ -31,6 +35,9 @@ fn build_shape(data: ShapeData, height: usize) -> Shape {
     Shape { data, height }
 }
 
+#[wasm_bindgen]
+#[repr(u8)] // 1 byte
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum ShapeType {
     // consider the top-center point as the bottom-center of the shape
     Square,
@@ -40,13 +47,35 @@ pub enum ShapeType {
     L,
     Line,
     MirroredL,
+    Random,
+}
+
+// for random value from ShapeType enum
+impl Distribution<ShapeType> for Standard {
+    fn sample<R: Rng + ?Sized>(&self, rng: &mut R) -> ShapeType {
+        match rng.gen_range(0, 6) {
+            0 => ShapeType::Square,
+            1 => ShapeType::S,
+            2 => ShapeType::Z,
+            3 => ShapeType::T,
+            4 => ShapeType::L,
+            5 => ShapeType::Line,
+            6 => ShapeType::MirroredL,
+            _ => ShapeType::Square,
+        }
+    }
 }
 
 pub fn get_shape(shape_type: ShapeType) -> Shape {
     match shape_type {
         ShapeType::Square => build_shape(vec![(0, 0), (0, 1), (1, 0), (1, 1)], 2),
         ShapeType::S => build_shape(vec![(0, 0), (0, 1), (1, -1), (1, 0)], 2),
-        _ => build_shape(vec![], 0),
+        ShapeType::Z => build_shape(vec![(0, 0), (0, -1), (1, 0), (1, 1)], 2),
+        ShapeType::T => build_shape(vec![(0, 0), (0, -1), (0, 1), (1, 0)], 2),
+        ShapeType::L => build_shape(vec![(0, -1), (1, -1), (1, 0), (1, 1)], 2),
+        ShapeType::Line => build_shape(vec![(0, 0), (1, 0), (2, 0), (3, 0)], 4),
+        ShapeType::MirroredL => build_shape(vec![(0, 1), (1, 1), (1, 0), (1, -1)], 2),
+        _ => get_shape(rand::random::<ShapeType>()),
     }
 }
 
@@ -57,6 +86,7 @@ pub struct Board {
     cells: Vec<Vec<Cell>>,
     running_cells: Vec<(usize, usize)>,
     score: i32,
+    next_shape: ShapeType,
 }
 
 #[wasm_bindgen]
@@ -68,12 +98,14 @@ impl Board {
         let cells = vec![vec![Cell::Empty; width]; height];
         let running_cells = vec![];
         let score = 0;
+        let next_shape = ShapeType::Random;
         Board {
             width,
             height,
             cells,
             running_cells,
             score,
+            next_shape,
         }
     }
 
@@ -87,6 +119,10 @@ impl Board {
 
     pub fn get_score(&self) -> i32 {
         self.score
+    }
+
+    pub fn get_next_shape(&self) -> ShapeType {
+        self.next_shape
     }
 
     pub fn render(&self) -> String {
@@ -113,6 +149,10 @@ impl Board {
 
     pub fn set_score(&mut self, score: i32) {
         self.score = score;
+    }
+
+    pub fn set_next_shape(&mut self, next_shape: ShapeType) {
+        self.next_shape = next_shape;
     }
 
     pub fn get_running_cells(&self) -> &Vec<(usize, usize)> {
@@ -176,15 +216,15 @@ mod tests {
 
     #[test]
     fn test_board_init() {
-        let board = Board::new(1, 1);
-        assert!(board.is_err(), "Invalid param");
+        //        let board = Board::new(1, 1);
+        //        assert!(board.is_err(), "Invalid param");
         let board = Board::new(10, 30);
-        assert_eq!(board.unwrap().height, 30);
+        assert_eq!(board.height, 30);
     }
 
     #[test]
     fn test_add_shape_square() {
-        let mut board = Board::new(8, 10).unwrap();
+        let mut board = Board::new(8, 10);
         board.add_shape(get_shape(ShapeType::Square));
         assert_eq!(*board.get_cell(0, 3), Cell::Running);
         assert_eq!(*board.get_cell(0, 4), Cell::Running);
@@ -194,7 +234,7 @@ mod tests {
 
     #[test]
     fn test_add_shape_s() {
-        let mut board = Board::new(8, 10).unwrap();
+        let mut board = Board::new(8, 10);
         board.add_shape(get_shape(ShapeType::S));
         assert_eq!(*board.get_cell(0, 3), Cell::Running);
         assert_eq!(*board.get_cell(0, 4), Cell::Running);
