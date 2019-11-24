@@ -47,6 +47,9 @@ const bootstrap = (modules) => {
             case "l":
                 board.move_shape(DIRECTIONS.RIGHT);
                 break;
+            case "r":
+                board.rotate();
+                break;
             default:
                 return;
         }

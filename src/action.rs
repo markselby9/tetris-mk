@@ -1,5 +1,6 @@
 use crate::tetris::*;
 use wasm_bindgen::prelude::*;
+use web_sys::console;
 
 //extern crate web_sys;
 
@@ -25,7 +26,7 @@ impl Board {
                 let deleted_row_count = self.check_delete_rows() as i32;
                 self.set_score(self.get_score() + deleted_row_count);
                 //                add a random shape
-                self.add_shape(get_shape(self.get_next_shape()));
+                self.add_shape(get_shape(ShapeType::Random));
             }
         }
         true
@@ -82,12 +83,80 @@ impl Board {
                     self.set_running_cells(new_running_cells);
                 }
             }
-            Direction::Down => {
-                while self.drop() {
-                    println!("{}", self)
+            Direction::Down => while self.drop() {},
+        }
+    }
+
+    pub fn rotate(&mut self) {
+        // https://strategywiki.org/wiki/Tetris/Rotation_systems#Nintendo_rotation_system
+        // rotate by setting running cells
+
+        if self.get_running_cells().is_empty() {
+            return;
+        }
+
+        let mut next = self.get_cells().clone();
+        let mut this_running_cells = self.get_running_cells().clone();
+        let this_top_left_offset = &self.get_running_shape().top_left_offset.clone();
+        this_running_cells.sort();
+        console::log_1(&JsValue::from_str(&format!(
+            "this_running_cells {:#?}",
+            this_running_cells
+        )));
+
+        let mut top_left_point = (0, 0);
+        let height = self.get_running_shape().height;
+
+        //        find the position of top left point, in a 3*3 or 4*4 grid of the shape
+        let offset = this_top_left_offset.get(0).unwrap();
+        let offset_0 = ((offset.0 + self.get_height() as i32) as usize) % self.get_height();
+        let offset_1 = ((offset.1 + self.get_width() as i32) as usize) % self.get_width();
+        top_left_point.0 = (this_running_cells[0].0 + offset_0) % self.get_height();
+        top_left_point.1 = (this_running_cells[0].1 + offset_1) % self.get_width();
+
+        let mut new_grids_after_rotation = vec![vec![Cell::Empty; height]; height];
+        for i in top_left_point.0..top_left_point.0 + height {
+            for j in top_left_point.1..top_left_point.1 + height {
+                if i >= self.get_height() || j >= self.get_width() {
+                    // cannot rotate
+                    return;
+                }
+                if next[i][j] == Cell::Running {
+                    new_grids_after_rotation[height - 1 - (j - top_left_point.1)]
+                        [i - top_left_point.0] = Cell::Running;
+                    next[i][j] = Cell::Empty;
                 }
             }
         }
+        let mut next_running_cells = vec![];
+
+        let mut can_rotate = true;
+        for i in 0..height {
+            for j in 0..height {
+                if new_grids_after_rotation[i][j] == Cell::Running {
+                    let temp_x = top_left_point.0 + i;
+                    let temp_y = top_left_point.1 + j;
+                    if temp_x >= self.get_height()
+                        || temp_y >= self.get_width()
+                        || next[top_left_point.0 + i][top_left_point.1 + j] == Cell::Placed
+                    {
+                        can_rotate = false;
+                        break;
+                    }
+                    next_running_cells.push((temp_x, temp_y));
+                }
+            }
+        }
+        if !can_rotate {
+            return;
+        }
+        for (i, j) in next_running_cells.iter().cloned() {
+            next[i][j] = Cell::Running;
+        }
+
+        self.move_top_left_offset_array(); // update offset
+        self.set_cells(next);
+        self.set_running_cells(next_running_cells);
     }
 }
 
@@ -135,14 +204,13 @@ impl Board {
     }
 
     fn check_delete_rows(&mut self) -> usize {
-        let mut deleted_rows: usize = 0;
         let mut current = self.get_cells().clone();
 
         current = current
             .into_iter()
             .filter(|row| row.iter().any(|&x| x != Cell::Placed))
             .collect();
-        deleted_rows = self.get_cells().len() - current.len();
+        let deleted_rows = self.get_cells().len() - current.len();
 
         if deleted_rows > 0 {
             let mut next = vec![vec![Cell::Empty; self.get_width()]; deleted_rows];
@@ -186,7 +254,7 @@ mod tests {
     fn test_tick_will_end() {
         let mut board = Board::new(8, 10);
         board.add_shape(get_shape(ShapeType::Square));
-        board.set_next_shape(ShapeType::Square);
+        //        board.set_next_shape_type(ShapeType::Square);
         let mut count = 0;
 
         loop {
@@ -229,7 +297,7 @@ mod tests {
         //        test in a integrated way
         let mut board = Board::new(8, 10);
         board.add_shape(get_shape(ShapeType::Square));
-        board.set_next_shape(ShapeType::Square);
+        //        board.set_next_shape_type(ShapeType::Square);
         board.move_shape(Direction::Left);
         board.move_shape(Direction::Left);
         board.move_shape(Direction::Left);
@@ -250,9 +318,55 @@ mod tests {
         board.move_shape(Direction::Down);
         board.tick();
 
-        println!("{}", board);
         // test whether all deleted
         assert!(board.is_ith_column_all(board.get_height() - 1, Cell::Empty));
         assert!(board.is_ith_column_all(board.get_height() - 2, Cell::Empty));
+    }
+
+    #[test]
+    fn test_rotate_line() {
+        let mut board = Board::new(8, 10);
+        board.set_running_shape(get_shape(ShapeType::Line));
+        //        board.set_next_shape_type(ShapeType::Line);
+        board.tick();
+        board.tick();
+
+        assert_eq!(*board.get_cell(1, 3), Cell::Running);
+        board.rotate();
+        assert_eq!(*board.get_cell(1, 3), Cell::Empty);
+        assert_eq!(*board.get_cell(3, 1), Cell::Running);
+        board.rotate();
+        assert_eq!(*board.get_cell(1, 2), Cell::Running);
+        assert_eq!(*board.get_cell(3, 1), Cell::Empty);
+        board.rotate();
+        println!("{}", board);
+    }
+
+    #[test]
+    fn test_rotate_other_shape() {
+        fn test_rotate_same(shape: ShapeType) {
+            let mut board = Board::new(8, 10);
+            board.set_running_shape(get_shape(ShapeType::MirroredL));
+            //            board.set_next_shape_type(ShapeType::MirroredL);
+            board.tick();
+            board.tick();
+
+            let mut running_cells_1 = board.get_running_cells().clone();
+            board.rotate();
+            board.rotate();
+            board.rotate();
+            board.rotate();
+            let mut running_cells_2 = board.get_running_cells().clone();
+            running_cells_1.sort();
+            running_cells_2.sort();
+            assert_eq!(running_cells_1, running_cells_2);
+        }
+
+        test_rotate_same(ShapeType::MirroredL);
+        test_rotate_same(ShapeType::Z);
+        test_rotate_same(ShapeType::S);
+        test_rotate_same(ShapeType::Line);
+        test_rotate_same(ShapeType::Square);
+        test_rotate_same(ShapeType::L);
     }
 }
