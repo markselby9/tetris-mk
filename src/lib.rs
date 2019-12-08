@@ -1,5 +1,5 @@
 use wasm_bindgen::prelude::*;
-use web_sys::console;
+//use web_sys::console;
 
 mod action;
 mod tetris;

@@ -83,7 +83,7 @@ impl Distribution<ShapeType> for Standard {
     }
 }
 
-pub fn get_shape(shape_type: ShapeType) -> Shape {
+pub fn generate_shape(shape_type: ShapeType) -> Shape {
     match shape_type {
         ShapeType::Square => build_shape(
             vec![(0, 0), (0, 1), (1, 0), (1, 1)],
@@ -127,7 +127,7 @@ pub fn get_shape(shape_type: ShapeType) -> Shape {
             ShapeType::MirroredL,
             vec![(0, -2), (0, 0), (-1, 0), (0, -1)],
         ),
-        _ => get_shape(rand::random::<ShapeType>()),
+        _ => generate_shape(rand::random::<ShapeType>()),
     }
 }
 
@@ -137,6 +137,7 @@ pub struct Board {
     height: usize,
     cells: Vec<Vec<Cell>>,
     running_shape: Shape,
+    next_shape_type: ShapeType,
     score: i32,
 }
 
@@ -151,12 +152,14 @@ impl Board {
         }
         let cells = vec![vec![Cell::Empty; width]; height];
         let score = 0;
-        let running_shape = get_shape(ShapeType::Random);
+        let running_shape = generate_shape(ShapeType::Random);
+        let next_shape_type = ShapeType::Random;
         Board {
             width,
             height,
             cells,
             running_shape,
+            next_shape_type,
             score,
         }
     }
@@ -173,9 +176,9 @@ impl Board {
         self.score
     }
 
-    //    pub fn get_next_shape_type(&self) -> ShapeType {
-    //        self.next_shape_type
-    //    }
+    pub fn get_next_shape_type(&self) -> ShapeType {
+        self.next_shape_type
+    }
 
     pub fn render(&self) -> String {
         self.to_string()
@@ -203,10 +206,6 @@ impl Board {
         self.score = score;
     }
 
-    //    pub fn set_next_shape_type(&mut self, next_shape_type: ShapeType) {
-    //        self.next_shape_type = next_shape_type;
-    //    }
-
     pub fn get_running_shape(&self) -> &Shape {
         &self.running_shape
     }
@@ -221,6 +220,10 @@ impl Board {
 
     pub fn set_running_cells(&mut self, new_running_cells: PositionSet) {
         self.running_shape.running_cells = new_running_cells;
+    }
+
+    pub fn set_next_shape_type(&mut self, new_next_shape_type: ShapeType) {
+        self.next_shape_type = new_next_shape_type;
     }
 
     pub fn move_top_left_offset_array(&mut self) {
@@ -296,7 +299,7 @@ mod tests {
     #[test]
     fn test_add_shape_square() {
         let mut board = Board::new(8, 10);
-        board.add_shape(get_shape(ShapeType::Square));
+        board.add_shape(generate_shape(ShapeType::Square));
         assert_eq!(*board.get_cell(0, 3), Cell::Running);
         assert_eq!(*board.get_cell(0, 4), Cell::Running);
         assert_eq!(*board.get_cell(1, 3), Cell::Running);
@@ -306,7 +309,7 @@ mod tests {
     #[test]
     fn test_add_shape_s() {
         let mut board = Board::new(8, 10);
-        board.add_shape(get_shape(ShapeType::S));
+        board.add_shape(generate_shape(ShapeType::S));
         assert_eq!(*board.get_cell(0, 3), Cell::Running);
         assert_eq!(*board.get_cell(0, 4), Cell::Running);
         assert_eq!(*board.get_cell(1, 2), Cell::Running);
