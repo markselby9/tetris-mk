@@ -3,6 +3,7 @@ import("../pkg/index.js").then(t => {
 }).catch(console.error);
 const pre = document.getElementById('tetris-mk-canvas');
 const score = document.getElementById('score');
+const next_shape = document.getElementById('next_shape');
 
 const DIRECTIONS = {
     'LEFT': 0,
@@ -17,6 +18,7 @@ const bootstrap = (modules) => {
     const renderLoop = () => {
         pre.textContent = board.render();
         score.textContent = board.get_score();
+        next_shape.textContent = board.get_next_shape_type();
 
         if (!board.tick()) {
             alert("Game over! Your score: " + board.get_score());
@@ -62,6 +64,8 @@ const bootstrap = (modules) => {
         = () => board.move_shape(DIRECTIONS.LEFT);
     document.getElementById('right').onclick
         = () => board.move_shape(DIRECTIONS.RIGHT);
+    document.getElementById('rotate').onclick
+        = () => board.rotate();
 
     requestAnimationFrame(renderLoop);
 };
